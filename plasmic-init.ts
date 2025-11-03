@@ -30,4 +30,15 @@ PLASMIC.registerComponent(ImageUploadInput, {
   },
 });
 
+import IngredientsInput from "./components/IngredientsInput";
+
+PLASMIC.registerComponent(IngredientsInput, {
+  name: "IngredientsInput",
+  props: {
+    name: {
+      type: "string",
+      defaultValue: "ingredients_list"
+    }
+  },
+});
 
