@@ -14,13 +14,13 @@ export default async function handler(req, res) {
     title,
     total_minutes,
     tags,
-    ingredients,
     steps,
-    image_path
+    image_path,
+    ingredients_list
   } = req.body;
 
-  if (!title || !ingredients) {
-    return res.status(400).json({ error: 'Missing title or ingredients' });
+  if (!title || !Array.isArray(ingredients_list) || ingredients_list.length === 0) {
+    return res.status(400).json({ error: 'Missing title or ingredients_list' });
   }
 
   // Insert the main recipe
@@ -42,25 +42,18 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to insert recipe', details: recipeError });
   }
 
-  // Process comma-separated ingredients
-  const parsedIngredients = ingredients
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean)
-    .map(str => {
-      const parts = str.trim().split(' ');
-      const amount = parseFloat(parts[0]) || null;
-      const unit = parts.length > 2 ? parts[1] : null;
-      const name = parts.slice(unit ? 2 : 1).join(' ').toLowerCase();
-      return { amount, unit, name };
-    });
+  for (const ing of ingredients_list) {
+    const name = (ing.name || '').trim().toLowerCase();
+    const unit = ing.unit?.trim() || null;
+    const amount = ing.amount?.trim() || null;
 
-  for (const ing of parsedIngredients) {
-    // 1. Insert or get the ingredient
+    if (!name) continue;
+
+    // 1. Insert or get the ingredient by name (case-insensitive)
     const { data: existing, error: lookupError } = await supabase
       .from('ingredients')
       .select('id')
-      .ilike('name', ing.name)
+      .ilike('name', name)
       .maybeSingle();
 
     let ingredient_id = existing?.id;
@@ -68,7 +61,7 @@ export default async function handler(req, res) {
     if (!ingredient_id) {
       const { data: newIng, error: insertError } = await supabase
         .from('ingredients')
-        .insert([{ name: ing.name }])
+        .insert([{ name }])
         .select()
         .single();
       if (insertError) {
@@ -77,13 +70,13 @@ export default async function handler(req, res) {
       ingredient_id = newIng.id;
     }
 
-    // 2. Insert into recipe_ingredients
+    // 2. Link ingredient to recipe
     const { error: linkError } = await supabase.from('recipe_ingredients').insert([
       {
         recipe_id: recipe.id,
         ingredient_id,
-        amount: ing.amount,
-        unit: ing.unit
+        amount,
+        unit
       }
     ]);
 
