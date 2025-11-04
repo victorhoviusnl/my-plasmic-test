@@ -1,5 +1,6 @@
 import { initPlasmicLoader } from "@plasmicapp/loader-nextjs";
 import ImageUploadInput from "./components/ImageUploadInput";
+import MultiSelectInput from "./components/MultiSelectInput";
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_PLASMIC_PROJECT_ID!;
 const PUBLIC_TOKEN = process.env.NEXT_PUBLIC_PLASMIC_PUBLIC_TOKEN!;
@@ -42,3 +43,26 @@ PLASMIC.registerComponent(IngredientsInput, {
   },
 });
 
+PLASMIC.registerComponent(MultiSelectInput, {
+  name: "MultiSelectInput",
+  props: {
+    name: {
+      type: "string",
+      description: "De naam van de input (wordt gebruikt in hidden field)",
+    },
+    label: {
+      type: "string",
+      description: "Label boven de groep checkboxes",
+    },
+    options: {
+      type: "array",
+      description: "Lijst van beschikbare opties",
+      defaultValue: [],
+    },
+    defaultValue: {
+      type: "array",
+      description: "Optioneel: vooraf geselecteerde waarden",
+      defaultValue: [],
+    },
+  },
+});
