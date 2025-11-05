@@ -12,78 +12,116 @@ export default async function handler(req, res) {
 
   const {
     title,
-    total_minutes,
-    tags,
     steps,
     image_path,
-    ingredients_list
+    ingredients_list,
+    // Tijden (als optional fields)
+    prep_time,
+    cook_time,
+    oven_time,
+    cooling_time,
+    resting_time,
+    marinade_time,
+    stew_time,
+    chill_time
   } = req.body;
 
-  if (!title || !Array.isArray(ingredients_list) || ingredients_list.length === 0) {
-    return res.status(400).json({ error: 'Missing title or ingredients_list' });
+  if (!title) {
+    return res.status(400).json({ error: 'Missing recipe title' });
   }
 
-  // Insert the main recipe
+  // 🧪 Log alle waarden die naar Supabase gaan
+  console.log("📦 Inserting recipe with values:", {
+    title,
+    steps,
+    image_path,
+    prep_time,
+    cook_time,
+    oven_time,
+    cooling_time,
+    resting_time,
+    marinade_time,
+    stew_time,
+    chill_time
+  });
+
+  // Recept invoegen inclusief tijdvelden
   const { data: recipe, error: recipeError } = await supabase
     .from('recipes')
     .insert([
       {
         title,
-        total_minutes,
-        tags,
         steps,
-        image_path
+        image_path,
+        prep_time,
+        cook_time,
+        oven_time,
+        cooling_time,
+        resting_time,
+        marinade_time,
+        stew_time,
+        chill_time
       }
     ])
     .select()
     .single();
 
   if (recipeError) {
+    console.error("❌ Supabase insert error:", recipeError);
     return res.status(500).json({ error: 'Failed to insert recipe', details: recipeError });
   }
 
-  for (const ing of ingredients_list) {
-    const name = (ing.name || '').trim().toLowerCase();
-    const unit = ing.unit?.trim() || null;
-    const amount = ing.amount?.trim() || null;
+  // Ingrediënten verwerken
+  if (Array.isArray(ingredients_list) && ingredients_list.length > 0) {
+    for (const ing of ingredients_list) {
+      const name = (ing.name || '').trim().toLowerCase();
+      const unit = ing.unit?.trim() || null;
+      const amount = ing.amount?.trim() || null;
+      if (!name) continue;
 
-    if (!name) continue;
-
-    // 1. Insert or get the ingredient by name (case-insensitive)
-    const { data: existing, error: lookupError } = await supabase
-      .from('ingredients')
-      .select('id')
-      .ilike('name', name)
-      .maybeSingle();
-
-    let ingredient_id = existing?.id;
-
-    if (!ingredient_id) {
-      const { data: newIng, error: insertError } = await supabase
+      // Ingrediënt ophalen of toevoegen
+      const { data: existing, error: lookupError } = await supabase
         .from('ingredients')
-        .insert([{ name }])
-        .select()
-        .single();
-      if (insertError) {
-        return res.status(500).json({ error: 'Failed to insert ingredient', details: insertError });
-      }
-      ingredient_id = newIng.id;
-    }
+        .select('id')
+        .ilike('name', name)
+        .maybeSingle();
 
-    // 2. Link ingredient to recipe
-    const { error: linkError } = await supabase.from('recipe_ingredients').insert([
-      {
-        recipe_id: recipe.id,
-        ingredient_id,
-        amount,
-        unit
-      }
-    ]);
+      let ingredient_id = existing?.id;
 
-    if (linkError) {
-      return res.status(500).json({ error: 'Failed to link ingredient', details: linkError });
+      if (!ingredient_id) {
+        const { data: newIng, error: insertError } = await supabase
+          .from('ingredients')
+          .insert([{ name }])
+          .select()
+          .single();
+        if (insertError) {
+          console.error("❌ Fout bij ingrediënt toevoegen:", insertError);
+          return res.status(500).json({ error: 'Failed to insert ingredient', details: insertError });
+        }
+        ingredient_id = newIng.id;
+      }
+
+      // Ingrediënt koppelen aan recept
+      const { error: linkError } = await supabase.from('recipe_ingredients').insert([
+        {
+          recipe_id: recipe.id,
+          ingredient_id,
+          amount,
+          unit
+        }
+      ]);
+
+      if (linkError) {
+        console.error("❌ Fout bij koppelen van ingrediënt:", linkError, {
+          recipe_id: recipe.id,
+          ingredient_id,
+          amount,
+          unit
+        });
+        return res.status(500).json({ error: 'Failed to link ingredient', details: linkError });
+      }
     }
   }
 
-  return res.status(200).json({ success: true, recipeId: recipe.id });
+  return res.status(200).json(recipe); // volledige object terugsturen incl. id
 }
