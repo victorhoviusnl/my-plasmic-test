@@ -1,5 +1,6 @@
 import { initPlasmicLoader } from "@plasmicapp/loader-nextjs";
 import ImageUploadInput from "./components/ImageUploadInput";
+import IngredientsInput from "./components/IngredientsInput";
 import MultiSelectInput from "./components/MultiSelectInput";
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_PLASMIC_PROJECT_ID!;
@@ -16,35 +17,33 @@ PLASMIC.registerComponent(ImageUploadInput, {
   props: {
     name:         { type: "string", defaultValue: "image_path" },
     bucket:       { type: "string", defaultValue: "recipe-images" },
-    outputMode:   { type: "choice", options: ["url","path"], defaultValue: "path" },
+    outputMode:   { type: "choice", options: ["url", "path"], defaultValue: "path" },
     buttonLabel:  { type: "string", defaultValue: "Choose image" },
     defaultValue: { type: "string", defaultValue: "" },
     maxMb:        { type: "number", defaultValue: 5 },
-
-    // Controlled input API — let Plasmic treat it like a Form Field
-    value:    { type: "string", displayName: "Value" },
+    value:        { type: "string", displayName: "Value" },
     onChange: {
-      type: "eventHandler",                 // <- important
+      type: "eventHandler",
       displayName: "onChange",
       argTypes: [{ name: "value", type: "string" }],
     },
   },
 });
 
-import IngredientsInput from "./components/IngredientsInput";
-
 PLASMIC.registerComponent(IngredientsInput, {
   name: "IngredientsInput",
+  importPath: "./components/IngredientsInput",
   props: {
     name: {
       type: "string",
-      defaultValue: "ingredients_list"
-    }
+      defaultValue: "ingredients_list",
+    },
   },
 });
 
 PLASMIC.registerComponent(MultiSelectInput, {
   name: "MultiSelectInput",
+  importPath: "./components/MultiSelectInput",
   props: {
     name: {
       type: "string",
